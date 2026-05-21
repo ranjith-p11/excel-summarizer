@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Excel Analytics Pro — AI-Powered Student Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --bg: #07090f;
+  --surface: #0d1117;
+  --surface2: #161b27;
+  --surface3: #1c2333;
+  --border: #21293a;
+  --border2: #2d3748;
+  --text: #e8edf5;
+  --text2: #8b97a8;
+  --text3: #5a6478;
+  --accent: #00d4ff;
+  --accent2: #7c3aed;
+  --accent3: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --gold: #fbbf24;
+  --glow: rgba(0,212,255,0.15);
+  --glow2: rgba(124,58,237,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'DM Sans',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── NOISE TEXTURE OVERLAY ── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:.4;
+}
+
+/* ── ANIMATED GRID ── */
+.grid-bg{
+  position:fixed;inset:0;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:60px 60px;
+  opacity:.3;pointer-events:none;z-index:0;
+}
+
+/* ── LAYOUT ── */
+.app{position:relative;z-index:1}
+.sidebar{
+  position:fixed;left:0;top:0;bottom:0;width:240px;
+  background:rgba(13,17,23,0.95);
+  border-right:1px solid var(--border);
+  backdrop-filter:blur(20px);
+  display:flex;flex-direction:column;
+  padding:0;z-index:100;
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.main{margin-left:240px;min-height:100vh;padding:24px 28px}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:none}
+  .main{margin-left:0;padding:16px}
+  .mobile-menu{display:flex!important}
+}
+
+/* ── LOGO ── */
+.logo-wrap{
+  padding:20px 20px 16px;
+  border-bottom:1px solid var(--border);
+}
+.logo{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:18px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  letter-spacing:-0.5px;
+}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:.5px;text-transform:uppercase}
+
+/* ── NAV ── */
+.nav{padding:12px 10px;flex:1;overflow-y:auto}
+.nav-section{font-size:10px;color:var(--text3);letter-spacing:1.2px;text-transform:uppercase;padding:12px 10px 6px;font-weight:600}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:8px;
+  cursor:pointer;font-size:13.5px;color:var(--text2);
+  transition:all .15s;margin-bottom:2px;
+  position:relative;user-select:none;
+}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:linear-gradient(135deg,rgba(0,212,255,.12),rgba(124,58,237,.08));color:var(--accent);font-weight:500}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:60%;background:var(--accent);border-radius:2px}
+.nav-icon{width:18px;text-align:center;font-size:14px;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--accent2);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600}
+
+/* ── SIDEBAR FOOTER ── */
+.sidebar-footer{
+  padding:14px;border-top:1px solid var(--border);
+}
+.upload-status{
+  background:var(--surface2);border-radius:8px;padding:10px;
+  font-size:12px;color:var(--text2);
+}
+.upload-status .status-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);display:inline-block;margin-right:6px}
+.upload-status.has-data .status-dot{background:var(--accent3);box-shadow:0 0 6px var(--accent3)}
+.upload-status .filename{color:var(--text);font-weight:500;font-size:11px;margin-top:4px;word-break:break-all}
+
+/* ── TOPBAR ── */
+.topbar{
+  display:flex;align-items:center;gap:12px;margin-bottom:24px;
+  padding-bottom:20px;border-bottom:1px solid var(--border);
+}
+.topbar-title{font-family:'Syne',sans-serif;font-weight:700;font-size:22px;flex:1}
+.topbar-title span{color:var(--accent)}
+.mobile-menu{display:none;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer;font-size:16px}
+
+/* ── PAGES ── */
+.page{display:none;animation:fadeUp .3s ease}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* ── CARDS ── */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:14px;padding:20px;
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 20% 20%,var(--glow),transparent 60%);
+  pointer-events:none;opacity:0;transition:opacity .3s;
+}
+.card:hover::before{opacity:1}
+
+/* ── KPI CARDS ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:20px}
+.kpi-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:16px;position:relative;overflow:hidden;
+  transition:transform .2s,border-color .2s;cursor:default;
+}
+.kpi-card:hover{transform:translateY(-2px);border-color:var(--border2)}
+.kpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:8px}
+.kpi-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;color:var(--text);line-height:1}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:6px}
+.kpi-icon{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  font-size:28px;opacity:.18;
+}
+.kpi-card.accent{border-color:rgba(0,212,255,.2)}
+.kpi-card.accent .kpi-value{color:var(--accent)}
+.kpi-card.purple{border-color:rgba(124,58,237,.2)}
+.kpi-card.purple .kpi-value{color:var(--accent2)}
+.kpi-card.green{border-color:rgba(16,185,129,.2)}
+.kpi-card.green .kpi-value{color:var(--accent3)}
+.kpi-card.danger{border-color:rgba(239,68,68,.2)}
+.kpi-card.danger .kpi-value{color:var(--danger)}
+.kpi-card.gold{border-color:rgba(251,191,36,.2)}
+.kpi-card.gold .kpi-value{color:var(--gold)}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone{
+  border:2px dashed var(--border2);border-radius:16px;
+  padding:52px 24px;text-align:center;
+  transition:all .2s;cursor:pointer;
+  background:radial-gradient(ellipse at center,rgba(0,212,255,.03),transparent 70%);
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:radial-gradient(ellipse at center,rgba(0,212,255,.07),transparent 70%)}
+.upload-zone h3{font-family:'Syne',sans-serif;font-size:18px;margin-bottom:8px;color:var(--text)}
+.upload-zone p{color:var(--text2);font-size:13px}
+.upload-icon{font-size:44px;margin-bottom:16px;display:block}
+.btn-upload{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--accent),#00a8cc);
+  color:#000;font-weight:700;font-size:13px;
+  padding:10px 22px;border-radius:10px;border:none;cursor:pointer;
+  margin-top:16px;transition:all .2s;font-family:inherit;
+}
+.btn-upload:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,212,255,.3)}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:8px;border:none;cursor:pointer;
+  font:500 13px 'DM Sans',sans-serif;transition:all .15s;
+}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#0099bb);color:#000;font-weight:700}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,212,255,.25)}
+.btn-secondary{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--surface3);color:var(--text)}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+.btn-ai{background:linear-gradient(135deg,var(--accent2),#9333ea);color:#fff;font-weight:600}
+.btn-ai:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.3)}
+.btn-success{background:rgba(16,185,129,.15);color:var(--accent3);border:1px solid rgba(16,185,129,.3)}
+.btn-success:hover{background:rgba(16,185,129,.25)}
+.btn-sm{padding:5px 11px;font-size:12px;border-radius:6px}
+
+/* ── SEARCH ── */
+.search-bar{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;padding:0 14px;
+  transition:border-color .2s;
+}
+.search-bar:focus-within{border-color:var(--accent)}
+.search-bar input{
+  background:none;border:none;outline:none;color:var(--text);
+  font:400 14px 'DM Sans',sans-serif;padding:10px 0;flex:1;
+}
+.search-bar input::placeholder{color:var(--text3)}
+.search-icon{color:var(--text3);font-size:14px;flex-shrink:0}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{position:sticky;top:0;z-index:2}
+th{
+  background:var(--surface2);padding:11px 13px;
+  text-align:left;font-weight:600;font-size:11.5px;
+  color:var(--text2);letter-spacing:.5px;text-transform:uppercase;
+  border-bottom:1px solid var(--border);white-space:nowrap;
+}
+td{
+  padding:10px 13px;border-bottom:1px solid var(--border);
+  color:var(--text);vertical-align:middle;white-space:nowrap;
+}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surface2)}
+.rank-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:6px;font-weight:700;font-size:11px;
+}
+.rank-1{background:rgba(251,191,36,.2);color:var(--gold)}
+.rank-2{background:rgba(156,163,175,.2);color:#9ca3af}
+.rank-3{background:rgba(217,119,6,.2);color:#d97706}
+.pass-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.pass-badge.pass{background:rgba(16,185,129,.15);color:var(--accent3)}
+.pass-badge.fail{background:rgba(239,68,68,.15);color:var(--danger)}
+.pass-badge.wb{background:rgba(245,158,11,.15);color:var(--warning)}
+
+/* ── GRADE PILL ── */
+.grade-pill{
+  display:inline-block;padding:2px 9px;border-radius:5px;
+  font-size:11px;font-weight:700;
+}
+.grade-O{background:rgba(16,185,129,.2);color:#10b981}
+.grade-A{background:rgba(0,212,255,.2);color:#00d4ff}
+.grade-B{background:rgba(124,58,237,.2);color:#7c3aed}
+.grade-C{background:rgba(245,158,11,.2);color:#f59e0b}
+.grade-F{background:rgba(239,68,68,.2);color:#ef4444}
+
+/* ── CHARTS ── */
+.chart-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:20px;
+}
+.chart-title{font-family:'Syne',sans-serif;font-weight:600;font-size:14px;margin-bottom:4px;color:var(--text)}
+.chart-sub{font-size:11.5px;color:var(--text3);margin-bottom:16px}
+.chart-shell{height:280px;position:relative}
+.charts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px}
+
+/* ── AI PANEL ── */
+.ai-panel{
+  background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(0,212,255,.05));
+  border:1px solid rgba(124,58,237,.25);border-radius:14px;padding:20px;
+  margin-bottom:20px;
+}
+.ai-panel-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.ai-icon{
+  width:36px;height:36px;border-radius:9px;
+  background:linear-gradient(135deg,var(--accent2),#9333ea);
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+}
+.ai-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--text)}
+.ai-sub{font-size:12px;color:var(--text3);margin-top:1px}
+.ai-prompts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.ai-prompt-btn{
+  background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.25);
+  color:var(--accent2);font-size:12px;padding:6px 13px;border-radius:20px;
+  cursor:pointer;transition:all .15s;font-family:inherit;
+}
+.ai-prompt-btn:hover{background:rgba(124,58,237,.22);transform:translateY(-1px)}
+.ai-input-row{display:flex;gap:8px}
+.ai-input{
+  flex:1;background:rgba(255,255,255,.04);border:1px solid var(--border2);
+  border-radius:9px;padding:10px 14px;color:var(--text);font:400 13px 'DM Sans',sans-serif;outline:none;
+  transition:border-color .2s;
+}
+.ai-input:focus{border-color:var(--accent2)}
+.ai-input::placeholder{color:var(--text3)}
+.ai-response{
+  background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;
+  padding:14px;margin-top:12px;font-size:13px;color:var(--text2);
+  line-height:1.65;max-height:300px;overflow-y:auto;
+  display:none;
+}
+.ai-response.visible{display:block}
+.ai-thinking{color:var(--accent2);font-style:italic;font-size:12px}
+.ai-response h4{font-family:'Syne',sans-serif;font-weight:700;color:var(--text);margin-bottom:8px;font-size:13px}
+.ai-response ul{margin-left:16px;margin-top:6px}
+.ai-response li{margin-bottom:4px}
+
+/* ── STUDENT PROFILE ── */
+.profile-header{
+  background:linear-gradient(135deg,rgba(0,212,255,.06),rgba(124,58,237,.06));
+  border:1px solid var(--border2);border-radius:14px;padding:22px;
+  display:flex;gap:18px;align-items:center;margin-bottom:16px;
+}
+.profile-avatar{
+  width:60px;height:60px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;
+  color:#fff;font-family:'Syne',sans-serif;
+}
+.profile-name{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--text)}
+.profile-meta{font-size:12px;color:var(--text3);margin-top:4px}
+.profile-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:12px}
+.profile-stat{background:var(--surface2);border-radius:8px;padding:10px;text-align:center}
+.profile-stat-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--accent)}
+.profile-stat-label{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ── SECTION HEADER ── */
+.section-header{
+  display:flex;align-items:center;gap:12px;margin-bottom:16px;
+}
+.section-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--text)}
+.section-count{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:6px;padding:2px 9px;font-size:12px;color:var(--text3);
+}
+.section-actions{margin-left:auto;display:flex;gap:8px}
+
+/* ── FILTERS ── */
+.filter-bar{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;
+}
+.filter-select{
+  background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  padding:7px 11px;color:var(--text2);font:400 12px 'DM Sans',sans-serif;outline:none;cursor:pointer;
+  transition:border-color .2s;
+}
+.filter-select:focus{border-color:var(--accent);color:var(--text)}
+.filter-select option{background:var(--surface)}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:0;background:var(--surface2);border-radius:10px;padding:3px;margin-bottom:16px;border:1px solid var(--border)}
+.tab{
+  flex:1;padding:7px;border-radius:8px;text-align:center;cursor:pointer;
+  font-size:12.5px;font-weight:500;color:var(--text2);transition:all .15s;
+}
+.tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+
+/* ── TOASTS ── */
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{
+  background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:12px 16px;font-size:13px;color:var(--text);
+  box-shadow:0 8px 24px rgba(0,0,0,.4);
+  animation:toastIn .25s ease;max-width:320px;display:flex;align-items:center;gap:8px;
+}
+.toast.success{border-color:rgba(16,185,129,.3);border-left:3px solid var(--accent3)}
+.toast.error{border-color:rgba(239,68,68,.3);border-left:3px solid var(--danger)}
+.toast.info{border-color:rgba(0,212,255,.3);border-left:3px solid var(--accent)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+/* ── PROGRESS BAR ── */
+.progress-track{background:var(--surface2);border-radius:99px;overflow:hidden;height:6px}
+.progress-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s ease}
+
+/* ── LOADING SKELETON ── */
+.skeleton{
+  background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.5s infinite;border-radius:6px;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── EMPTY STATE ── */
+.empty-state{
+  text-align:center;padding:52px 20px;
+  color:var(--text3);
+}
+.empty-state .empty-icon{font-size:48px;margin-bottom:12px;opacity:.5}
+.empty-state h3{font-family:'Syne',sans-serif;font-size:16px;color:var(--text2);margin-bottom:6px}
+.empty-state p{font-size:13px;line-height:1.6}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+
+/* ── DIVIDER ── */
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+
+/* ── GRID UTILS ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:900px){.grid-2,.grid-3,.charts-grid{grid-template-columns:1fr}}
+
+/* ── LANDING ── */
+.landing{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:80vh;text-align:center;padding:40px 20px;
+}
+.landing-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);
+  border-radius:99px;padding:5px 14px;font-size:12px;color:var(--accent);
+  font-weight:500;letter-spacing:.3px;margin-bottom:24px;
+}
+.landing-badge::before{content:'●';font-size:8px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.landing-h1{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(32px,5vw,56px);
+  line-height:1.05;letter-spacing:-1.5px;
+  margin-bottom:16px;
+}
+.landing-h1 span{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.landing-desc{
+  font-size:15px;color:var(--text2);max-width:520px;line-height:1.7;margin-bottom:32px;
+}
+.landing-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.landing-features{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:52px;max-width:700px;
+  text-align:left;
+}
+@media(max-width:600px){.landing-features{grid-template-columns:1fr}}
+.feat-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;
+}
+.feat-icon{font-size:24px;margin-bottom:8px}
+.feat-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:4px}
+.feat-desc{font-size:12px;color:var(--text3);line-height:1.5}
+
+/* ── SPINNER ── */
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── HEATMAP ── */
+.heatmap{display:grid;gap:3px}
+.heatmap-cell{
+  height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:600;cursor:default;transition:transform .15s;
+}
+.heatmap-cell:hover{transform:scale(1.05)}
+
+/* ── INSIGHTS LIST ── */
+.insight-list{display:flex;flex-direction:column;gap:8px}
+.insight-item{
+  display:flex;align-items:flex-start;gap:10px;
+  background:var(--surface2);border-radius:8px;padding:10px 13px;
+  font-size:12.5px;color:var(--text2);border-left:2px solid var(--border2);
+}
+.insight-item.good{border-left-color:var(--accent3)}
+.insight-item.bad{border-left-color:var(--danger)}
+.insight-item.warn{border-left-color:var(--warning)}
+.insight-item.info{border-left-color:var(--accent)}
+.insight-bullet{font-size:14px;flex-shrink:0;margin-top:1px}
+
+/* ── LEADERBOARD ── */
+.leaderboard{display:flex;flex-direction:column;gap:6px}
+.lb-row{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface2);border-radius:8px;padding:9px 12px;
+  transition:background .15s;cursor:default;
+}
+.lb-row:hover{background:var(--surface3)}
+.lb-rank{width:28px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;flex-shrink:0}
+.lb-name{flex:1;font-size:13px;font-weight:500}
+.lb-score{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--accent)}
+
+/* ── CHIP ── */
+.chip{
+  display:inline-block;padding:3px 10px;border-radius:5px;font-size:11px;
+  font-weight:600;background:var(--surface2);border:1px solid var(--border);color:var(--text2);
+}
+
+/* ── PDF EXPORT NOTICE ── */
+.export-bar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:14px;
+  border:1px solid var(--border);font-size:12.5px;color:var(--text2);
+}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="logo-wrap">
+    <div class="logo">⚡ ExcelAnalytics</div>
+    <div class="logo-sub">Pro Intelligence Platform</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" data-page="overview" onclick="navTo('overview',this)">
+      <span class="nav-icon">🏠</span> Overview
+    </div>
+    <div class="nav-item" data-page="upload" onclick="navTo('upload',this)">
+      <span class="nav-icon">📤</span> Upload Data
+    </div>
+    <div class="nav-section">Analytics</div>
+    <div class="nav-item" data-page="dashboard" onclick="navTo('dashboard',this)">
+      <span class="nav-icon">📊</span> Dashboard
+    </div>
+    <div class="nav-item" data-page="students" onclick="navTo('students',this)">
+      <span class="nav-icon">👥</span> Students
+    </div>
+    <div class="nav-item" data-page="subjects" onclick="navTo('subjects',this)">
+      <span class="nav-icon">📚</span> Subjects
+    </div>
+    <div class="nav-item" data-page="charts" onclick="navTo('charts',this)">
+      <span class="nav-icon">📈</span> Charts
+    </div>
+    <div class="nav-section">AI Features</div>
+    <div class="nav-item" data-page="ai" onclick="navTo('ai',this)">
+      <span class="nav-icon">🤖</span> AI Insights
+      <span class="nav-badge">AI</span>
+    </div>
+    <div class="nav-item" data-page="search" onclick="navTo('search',this)">
+      <span class="nav-icon">🔍</span> Student Search
+    </div>
+    <div class="nav-item" data-page="reports" onclick="navTo('reports',this)">
+      <span class="nav-icon">📋</span> Reports
+    </div>
+    <div class="nav-section">Data</div>
+    <div class="nav-item" data-page="table" onclick="navTo('table',this)">
+      <span class="nav-icon">📄</span> Full Table
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="upload-status" id="uploadStatus">
+      <span class="status-dot"></span>No data loaded
+    </div>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="main" id="mainContent">
+  <div class="topbar">
+    <button class="mobile-menu" onclick="toggleSidebar()">☰</button>
+    <div class="topbar-title" id="pageTitle">Overview <span>—</span> Excel Analytics Pro</div>
+    <button class="btn btn-secondary btn-sm" onclick="navTo('upload',document.querySelector('[data-page=upload]'))">📤 Upload</button>
+  </div>
+
+  <!-- ── PAGE: OVERVIEW ── -->
+  <div class="page active" id="page-overview">
+    <div class="landing">
+      <div class="landing-badge">✨ AI-Powered Analytics Platform</div>
+      <h1 class="landing-h1">Turn Excel Data into<br/><span>Actionable Intelligence</span></h1>
+      <p class="landing-desc">Upload your student marks spreadsheet and instantly get advanced analytics, AI-powered insights, interactive charts, and comprehensive performance reports.</p>
+      <div class="landing-actions">
+        <button class="btn btn-primary" style="font-size:14px;padding:12px 26px" onclick="navTo('upload',document.querySelector('[data-page=upload]'))">
+          📤 Upload Excel File
+        </button>
+        <button class="btn btn-ai" style="font-size:14px;padding:12px 26px" onclick="navTo('ai',document.querySelector('[data-page=ai]'))">
+          🤖 Try AI Insights
+        </button>
+      </div>
+      <div class="landing-features">
+        <div class="feat-card">
+          <div class="feat-icon">📊</div>
+          <div class="feat-title">Auto Analytics</div>
+          <div class="feat-desc">Instant KPIs, pass/fail rates, averages, ranks — all auto-calculated.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">🤖</div>
+          <div class="feat-title">AI Insights</div>
+          <div class="feat-desc">Claude AI analyzes your data and answers questions in natural language.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">📈</div>
+          <div class="feat-title">8 Chart Types</div>
+          <div class="feat-desc">Bar, Line, Pie, Donut, Radar, Area, Heatmap & more — all interactive.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">🔍</div>
+          <div class="feat-title">Student Search</div>
+          <div class="feat-desc">Find any student by roll number with full performance profile.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">📋</div>
+          <div class="feat-title">PDF Export</div>
+          <div class="feat-desc">Generate and download comprehensive PDF reports instantly.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">🏆</div>
+          <div class="feat-title">Leaderboard</div>
+          <div class="feat-desc">Automatic topper rankings and weak student detection.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PAGE: UPLOAD ── -->
+  <div class="page" id="page-upload">
+    <div class="card" style="max-width:640px;margin:0 auto">
+      <h2 style="font-family:'Syne',sans-serif;font-size:18px;margin-bottom:6px">Upload Excel / CSV File</h2>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:20px">Supports .xlsx, .xls, .csv — max ~50MB. First sheet is used.</p>
+      
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleDrop(event)">
+        <span class="upload-icon">☁️</span>
+        <h3>Drop your file here</h3>
+        <p>or click to browse your device</p>
+        <button class="btn-upload" onclick="event.stopPropagation();document.getElementById('fileInput').click()">
+          📁 Choose File
+        </button>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="loadFile(this.files[0])"/>
+      </div>
+
+      <div id="uploadProgress" style="display:none;margin-top:16px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:12px;color:var(--text2)" id="uploadProgressLabel">Processing...</span>
+          <span style="font-size:12px;color:var(--accent)" id="uploadProgressPct">0%</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progressBar" style="width:0%"></div></div>
+      </div>
+
+      <div id="uploadInfo" style="display:none;margin-top:16px">
+        <div class="card" style="background:var(--surface2)">
+          <div style="font-size:13px;color:var(--text2);margin-bottom:8px">📋 Detected Columns</div>
+          <div id="columnMap" style="font-size:12px;display:flex;flex-wrap:wrap;gap:6px"></div>
+          <hr class="divider"/>
+          <div id="uploadSummary" style="font-size:13px;color:var(--text2)"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-primary" onclick="navTo('dashboard',document.querySelector('[data-page=dashboard]'))">Go to Dashboard →</button>
+          <button class="btn btn-ai" onclick="navTo('ai',document.querySelector('[data-page=ai]'))">🤖 Get AI Insights</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PAGE: DASHBOARD ── -->
+  <div class="page" id="page-dashboard">
+    <div id="dashboardContent">
+      <div class="empty-state"><div class="empty-icon">📊</div><h3>No Data Loaded</h3><p>Upload an Excel file to see your dashboard.</p><br/><button class="btn btn-primary" onclick="navTo('upload',document.querySelector('[data-page=upload]'))">Upload Now</button></div>
+    </div>
+  </div>
+
+  <!-- ── PAGE: STUDENTS ── -->
+  <div class="page" id="page-students">
+    <div id="studentsContent">
+      <div class="empty-state"><div class="empty-icon">👥</div><h3>No Data Loaded</h3><p>Upload an Excel file to view student analytics.</p></div>
+    </div>
+  </div>
+
+  <!-- ── PAGE: SUBJECTS ── -->
+  <div class="page" id="page-subjects">
+    <div id="subjectsContent">
+      <div class="empty-state"><div class="empty-icon">📚</div><h3>No Data Loaded</h3><p>Upload an Excel file to view subject analytics.</p></div>
+    </div>
+  </div>
+
+  <!-- ── PAGE: CHARTS ── -->
+  <div class="page" id="page-charts">
+    <div id="chartsContent">
+      <div class="empty-state"><div class="empty-icon">📈</div><h3>No Data Loaded</h3><p>Upload an Excel file to view charts.</p></div>
+    </div>
+  </div>
+
+  <!-- ── PAGE: AI INSIGHTS ── -->
+  <div class="page" id="page-ai">
+    <div class="ai-panel">
+      <div class="ai-panel-header">
+        <div class="ai-icon">🤖</div>
+        <div>
+          <div class="ai-title">Claude AI Analyst</div>
+          <div class="ai-sub">Powered by Anthropic — Ask anything about your data</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="clearAiHistory()">Clear Chat</button>
+      </div>
+      <div class="ai-prompts" id="aiPrompts">
+        <button class="ai-prompt-btn" onclick="aiAsk('Give me a complete summary of the student performance data')">📋 Full Summary</button>
+        <button class="ai-prompt-btn" onclick="aiAsk('Who are the top 5 performing students?')">🏆 Top Students</button>
+        <button class="ai-prompt-btn" onclick="aiAsk('Who are the weakest students and what subjects do they struggle in?')">⚠️ Weak Students</button>
+        <button class="ai-prompt-btn" onclick="aiAsk('Which subject has the highest failure rate and why might that be?')">📚 Failure Analysis</button>
+        <button class="ai-prompt-btn" onclick="aiAsk('What is the overall pass percentage and grade distribution?')">📊 Grade Distribution</button>
+        <button class="ai-prompt-btn" onclick="aiAsk('Give actionable recommendations to improve student performance')">💡 Recommendations</button>
+        <button class="ai-prompt-btn" onclick="aiAsk('Detect any anomalies or outliers in the marks data')">🔎 Anomaly Detection</button>
+        <button class="ai-prompt-btn" onclick="aiAsk('Compare subject-wise average marks and rank subjects by difficulty')">⚖️ Subject Comparison</button>
+      </div>
+      <div class="ai-input-row">
+        <input class="ai-input" id="aiInput" type="text" placeholder="Ask anything about your data... e.g., 'Show me students who failed more than 2 subjects'" onkeydown="if(event.key==='Enter')aiSend()"/>
+        <button class="btn btn-ai" id="aiSendBtn" onclick="aiSend()">Ask AI</button>
+      </div>
+      <div class="ai-response" id="aiResponse"></div>
+    </div>
+    <div id="aiConversation" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div class="empty-state" id="aiEmptyState" style="padding:30px">
+      <div class="empty-icon">💬</div>
+      <h3>AI Analyst Ready</h3>
+      <p>Upload data and ask any question. Claude will analyze it and provide detailed insights.</p>
+    </div>
+  </div>
+
+  <!-- ── PAGE: SEARCH ── -->
+  <div class="page" id="page-search">
+    <div class="card" style="margin-bottom:16px">
+      <h2 style="font-family:'Syne',sans-serif;font-size:16px;margin-bottom:12px">🔍 Student Search</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="search-bar" style="flex:1;min-width:200px">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Enter Roll No or Registration No..." onkeydown="if(event.key==='Enter')doSearch()"/>
+        </div>
+        <button class="btn btn-primary" onclick="doSearch()">Search</button>
+        <button class="btn btn-secondary" onclick="clearSearch()">Clear</button>
+      </div>
+      <p id="searchHint" style="font-size:11px;color:var(--text3);margin-top:8px"></p>
+    </div>
+    <div id="searchResults"></div>
+  </div>
+
+  <!-- ── PAGE: REPORTS ── -->
+  <div class="page" id="page-reports">
+    <div id="reportsContent">
+      <div class="empty-state"><div class="empty-icon">📋</div><h3>No Data Loaded</h3><p>Upload an Excel file to generate reports.</p></div>
+    </div>
+  </div>
+
+  <!-- ── PAGE: TABLE ── -->
+  <div class="page" id="page-table">
+    <div id="tableContent">
+      <div class="empty-state"><div class="empty-icon">📄</div><h3>No Data Loaded</h3><p>Upload an Excel file to view the full data table.</p></div>
+    </div>
+  </div>
+</main>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+const state = {
+  allRows: [],
+  filename: '',
+  keys: {roll:null,reg:null,name:null,course:null,ca:null,te:null,total:null,gp:null,grade:null,result:null,dept:null,sem:null,batch:null},
+  charts: {},
+  aiHistory: [],
+};
+
+// ══════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════
+const norm = v => String(v??'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+const num = v => { const n=parseFloat(String(v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?null:n; };
+const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+const pct = (n,d) => d ? Math.round(n/d*100) : 0;
+const fmtNum = n => typeof n==='number' ? (n%1===0 ? n.toString() : n.toFixed(2)) : n;
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+
+function toast(msg, type='info', dur=3500){
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icons = {success:'✅',error:'❌',info:'ℹ️'};
+  el.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateX(20px)'; el.style.transition='all .25s'; setTimeout(()=>el.remove(),300); }, dur);
+}
+
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); }
+
+function navTo(page, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  if(el) el.classList.add('active');
+  const titles = {overview:'Overview',upload:'Upload Data',dashboard:'Dashboard',students:'Students',subjects:'Subjects',charts:'Charts',ai:'AI Insights',search:'Student Search',reports:'Reports',table:'Full Table'};
+  document.getElementById('pageTitle').innerHTML = `${titles[page]||page} <span>—</span> Excel Analytics Pro`;
+  document.getElementById('sidebar').classList.remove('open');
+  // Render page content
+  if(state.allRows.length){
+    if(page==='dashboard') renderDashboard();
+    else if(page==='students') renderStudents();
+    else if(page==='subjects') renderSubjects();
+    else if(page==='charts') renderCharts();
+    else if(page==='reports') renderReports();
+    else if(page==='table') renderTable();
+  }
+}
+
+// ══════════════════════════════════════════════
+// COLUMN DETECTION
+// ══════════════════════════════════════════════
+function detectColumns(rows){
+  const headers = Object.keys(rows[0]||{});
+  const map = {}; headers.forEach(h=> map[norm(h)] = h);
+  const pick = aliases => { const a = aliases.find(x=>map[x]); return a ? map[a] : null; };
+  const K = state.keys;
+  K.roll   = pick(['rollno','rollnumber','roll','rollnum','studentid']);
+  K.reg    = pick(['regno','regnumber','registrationno','registrationnumber','reg','regnum']);
+  K.name   = pick(['name','studentname','sname','fullname','student']);
+  K.course = pick(['coursecode','course_code','subjectcode','papercode','courseid','subject','subjectname','course','coursename']);
+  K.ca     = pick(['ca','cia','internal','continuousassessment','sessional','ia','internalmarks']);
+  K.te     = pick(['te','external','endsem','ese','theoryexternal','externalmarks','exam']);
+  K.total  = pick(['total','grandtotal','overall','totalmarks','marks','totmarks']);
+  K.gp     = pick(['gradepoint','grade_point','gp','gradepoints']);
+  K.grade  = pick(['grade','lettergrade','gradeobtained']);
+  K.result = pick(['result','status','passfail','remarks','outcome']);
+  K.dept   = pick(['dept','department','branch','discipline','program','programme']);
+  K.sem    = pick(['sem','semester','semno','semnum','semnumber']);
+  K.batch  = pick(['batch','year','acadyear','academicyear','joiningbatch']);
+  return K;
+}
+
+// ══════════════════════════════════════════════
+// FILE LOADING
+// ══════════════════════════════════════════════
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  loadFile(e.dataTransfer.files[0]);
+}
+
+function loadFile(file){
+  if(!file) return;
+  if(!/\.(xlsx|xls|csv)$/i.test(file.name)){ toast('Please upload .xlsx, .xls, or .csv','error'); return; }
+  state.filename = file.name;
+  
+  const progress = document.getElementById('uploadProgress');
+  const bar = document.getElementById('progressBar');
+  const label = document.getElementById('uploadProgressLabel');
+  const pctEl = document.getElementById('uploadProgressPct');
+  progress.style.display='block';
+  
+  let p=0;
+  const tick = setInterval(()=>{ p=Math.min(p+Math.random()*15,85); bar.style.width=p+'%'; pctEl.textContent=Math.round(p)+'%'; },120);
+
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    clearInterval(tick); bar.style.width='100%'; pctEl.textContent='100%';
+    label.textContent='Parsing data...';
+    setTimeout(()=>{
+      try{
+        let rows;
+        if(file.name.toLowerCase().endsWith('.csv')){
+          const wb = XLSX.read(ev.target.result,{type:'string'});
+          rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+        } else {
+          const wb = XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+          rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+        }
+        if(!rows.length){ toast('Sheet is empty','error'); progress.style.display='none'; return; }
+        state.allRows = rows;
+        detectColumns(rows);
+        showUploadInfo(rows);
+        updateSidebarStatus();
+        toast(`Loaded ${rows.length} rows from ${file.name}`,'success');
+        progress.style.display='none';
+      } catch(err){
+        toast('Error reading file: '+err.message,'error');
+        progress.style.display='none';
+      }
+    },400);
+  };
+  if(file.name.toLowerCase().endsWith('.csv')) reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+
+function showUploadInfo(rows){
+  const K = state.keys;
+  const cols = Object.entries(K).filter(([k,v])=>v).map(([k,v])=>{
+    const labels = {roll:'Roll',reg:'Reg',name:'Name',course:'Course',ca:'CA',te:'TE',total:'Total',gp:'GP',grade:'Grade',result:'Result',dept:'Dept',sem:'Semester',batch:'Batch'};
+    return `<span class="chip" style="background:rgba(0,212,255,.08);border-color:rgba(0,212,255,.2);color:var(--accent)">${labels[k]}: ${v}</span>`;
+  }).join('');
+  document.getElementById('columnMap').innerHTML = cols || '<span style="color:var(--text3)">No columns auto-detected. Data may still load.</span>';
+  
+  const students = getUniqueStudents().length;
+  const courses = getUniqueCourses().length;
+  document.getElementById('uploadSummary').innerHTML = 
+    `<b style="color:var(--text)">${rows.length}</b> total rows &nbsp;·&nbsp; 
+     <b style="color:var(--accent)">${students}</b> unique students &nbsp;·&nbsp; 
+     <b style="color:var(--accent2)">${courses}</b> unique subjects`;
+  document.getElementById('uploadInfo').style.display='block';
+}
+
+function updateSidebarStatus(){
+  const el = document.getElementById('uploadStatus');
+  if(state.allRows.length){
+    el.classList.add('has-data');
+    el.innerHTML = `<span class="status-dot"></span>Data loaded<div class="filename">${state.filename}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════
+// DATA HELPERS
+// ══════════════════════════════════════════════
+function getUniqueStudents(){
+  const K=state.keys; const seen=new Set(); const out=[];
+  state.allRows.forEach(r=>{
+    const id=(K.roll&&r[K.roll])||(K.reg&&r[K.reg])||'';
+    if(id && !seen.has(String(id).trim())){ seen.add(String(id).trim()); out.push(r); }
+  });
+  return out;
+}
+
+function getUniqueCourses(){
+  if(!state.keys.course) return [];
+  const seen=new Set();
+  state.allRows.forEach(r=>{ const c=r[state.keys.course]; if(c) seen.add(String(c).trim()); });
+  return [...seen];
+}
+
+function getStudentRows(id){
+  const K=state.keys; const nid=norm(id);
+  return state.allRows.filter(r=>{
+    return (K.roll&&norm(r[K.roll])===nid)||(K.reg&&norm(r[K.reg])===nid);
+  });
+}
+
+function getStudentId(row){
+  const K=state.keys;
+  return (K.roll&&row[K.roll]) ? String(row[K.roll]).trim() : (K.reg&&row[K.reg]) ? String(row[K.reg]).trim() : '—';
+}
+
+function getStudentName(row){
+  return state.keys.name ? String(row[state.keys.name]||'').trim() : null;
+}
+
+function isPass(row){
+  const K=state.keys;
+  if(K.result){
+    const v=String(row[K.result]).trim().toLowerCase();
+    if(/^(p|pass|passed)$/.test(v)) return true;
+    if(/^(f|fail|failed|wb|withheld)$/.test(v)) return false;
+  }
+  if(K.total){ const t=num(row[K.total]); if(t!==null) return t>=40; }
+  return null;
+}
+
+function isFail(row){ const r=isPass(row); return r===false; }
+
+function computeStudentGPA(rows){
+  const K=state.keys;
+  if(K.gp){ const gps=rows.map(r=>num(r[K.gp])).filter(n=>n!==null); if(gps.length) return avg(gps); }
+  if(K.total){ const tots=rows.map(r=>num(r[K.total])).filter(n=>n!==null); if(tots.length) return avg(tots); }
+  return null;
+}
+
+function getGradeClass(g){
+  if(!g) return '';
+  const v=String(g).toUpperCase();
+  if(v==='O'||v==='A+'||v==='A++'||v>=90) return 'grade-O';
+  if(v.startsWith('A')) return 'grade-A';
+  if(v.startsWith('B')) return 'grade-B';
+  if(v.startsWith('C')) return 'grade-C';
+  if(v==='F'||v.startsWith('F')) return 'grade-F';
+  return '';
+}
+
+function buildDataSummary(){
+  const rows=state.allRows, K=state.keys;
+  const allStudents=getUniqueStudents();
+  const allCourses=getUniqueCourses();
+  
+  // Per-student analytics
+  const studentStats=[];
+  allStudents.forEach(sr=>{
+    const id=getStudentId(sr);
+    const sRows=getStudentRows(id);
+    const passes=sRows.filter(r=>isPass(r)===true).length;
+    const fails=sRows.filter(r=>isFail(r)===true).length;
+    const gpa=computeStudentGPA(sRows);
+    const name=getStudentName(sr)||id;
+    studentStats.push({id,name,sRows,passes,fails,gpa,total:sRows.length});
+  });
+
+  // Course analytics
+  const courseStats={};
+  allCourses.forEach(c=>{
+    const cRows=rows.filter(r=>String(r[K.course]||'').trim()===c);
+    const passes=cRows.filter(r=>isPass(r)===true).length;
+    const fails=cRows.filter(r=>isFail(r)===true).length;
+    const totals=cRows.map(r=>num(r[K.total])).filter(n=>n!==null);
+    const cas=cRows.map(r=>num(r[K.ca])).filter(n=>n!==null);
+    const tes=cRows.map(r=>num(r[K.te])).filter(n=>n!==null);
+    courseStats[c]={cRows,passes,fails,avgTotal:avg(totals),avgCA:avg(cas),avgTE:avg(tes),count:cRows.length};
+  });
+
+  const passRows=rows.filter(r=>isPass(r)===true);
+  const failRows=rows.filter(r=>isFail(r)===true);
+  const allTotals=rows.map(r=>num(r[K.total])).filter(n=>n!==null);
+  const allGPs=rows.map(r=>num(r[K.gp])).filter(n=>n!==null);
+
+  return {studentStats,courseStats,allCourses,allStudents,passRows,failRows,allTotals,allGPs,rows};
+}
+
+// ══════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════
+function renderDashboard(){
+  if(!state.allRows.length) return;
+  const D=buildDataSummary();
+  const K=state.keys;
+  const rows=D.rows;
+  
+  const passCount=D.passRows.length, failCount=D.failRows.length;
+  const totalMeaningful=passCount+failCount;
+  const passPct=pct(passCount,totalMeaningful);
+  const failPct=pct(failCount,totalMeaningful);
+  const avgTotal=avg(D.allTotals);
+  const avgGP=avg(D.allGPs);
+  const highestMark=Math.max(...D.allTotals,0);
+  const lowestMark=Math.min(...D.allTotals.filter(n=>n>0),999);
+
+  // Toppers
+  const ranked=[...D.studentStats].filter(s=>s.gpa!==null).sort((a,b)=>b.gpa-a.gpa);
+
+  // Auto insights
+  const insights=[];
+  if(failPct>30) insights.push({type:'bad',icon:'🔴',text:`High failure rate: ${failPct}% of records show fail status. Immediate attention needed.`});
+  else if(failPct>15) insights.push({type:'warn',icon:'🟡',text:`Moderate failure rate: ${failPct}%. Consider remedial programs for at-risk students.`});
+  else if(failPct<=10) insights.push({type:'good',icon:'🟢',text:`Excellent pass rate: ${passPct}%. Students are performing well overall.`});
+  
+  if(avgTotal>0){
+    if(avgTotal<50) insights.push({type:'bad',icon:'📉',text:`Average total marks (${avgTotal.toFixed(1)}) is below 50. Overall performance needs improvement.`});
+    else if(avgTotal>=75) insights.push({type:'good',icon:'📈',text:`Average total marks of ${avgTotal.toFixed(1)} indicates strong overall performance.`});
+  }
+  
+  const worstCourse=Object.entries(D.courseStats).sort((a,b)=>b[1].fails-a[1].fails)[0];
+  if(worstCourse&&worstCourse[1].fails>0){
+    insights.push({type:'warn',icon:'📚',text:`Highest failures in: ${worstCourse[0]} (${worstCourse[1].fails} fails). May need curriculum review.`});
+  }
+  
+  if(ranked.length>0) insights.push({type:'info',icon:'🏆',text:`Top student: ${ranked[0].name} with avg score of ${fmtNum(ranked[0].gpa)}.`});
+
+  document.getElementById('dashboardContent').innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi-card accent"><div class="kpi-label">Total Students</div><div class="kpi-value">${D.allStudents.length}</div><div class="kpi-sub">${rows.length} total records</div><div class="kpi-icon">👥</div></div>
+      <div class="kpi-card green"><div class="kpi-label">Pass Rate</div><div class="kpi-value">${passPct}%</div><div class="kpi-sub">${passCount} passed</div><div class="kpi-icon">✅</div></div>
+      <div class="kpi-card danger"><div class="kpi-label">Fail Rate</div><div class="kpi-value">${failPct}%</div><div class="kpi-sub">${failCount} failed</div><div class="kpi-icon">❌</div></div>
+      <div class="kpi-card purple"><div class="kpi-label">Avg Marks</div><div class="kpi-value">${avgTotal>0?avgTotal.toFixed(1):'—'}</div><div class="kpi-sub">out of max</div><div class="kpi-icon">📊</div></div>
+      <div class="kpi-card gold"><div class="kpi-label">Highest Mark</div><div class="kpi-value">${highestMark>0?highestMark:'—'}</div><div class="kpi-sub">top performer</div><div class="kpi-icon">🏆</div></div>
+      <div class="kpi-card"><div class="kpi-label">Subjects</div><div class="kpi-value">${D.allCourses.length}</div><div class="kpi-sub">total courses</div><div class="kpi-icon">📚</div></div>
+    </div>
+    
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="section-title" style="margin-bottom:12px">⚡ Auto Insights</div>
+        <div class="insight-list">
+          ${insights.map(i=>`<div class="insight-item ${i.type}"><span class="insight-bullet">${i.icon}</span><span>${i.text}</span></div>`).join('')}
+          ${!insights.length?'<div style="color:var(--text3);font-size:13px">No specific insights detected.</div>':''}
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title" style="margin-bottom:12px">🏆 Leaderboard</div>
+        <div class="leaderboard">
+          ${ranked.slice(0,8).map((s,i)=>`
+            <div class="lb-row">
+              <div class="lb-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`}</div>
+              <div class="lb-name">${s.name}</div>
+              <div class="lb-score">${fmtNum(s.gpa)}</div>
+            </div>
+          `).join('')}
+          ${!ranked.length?'<div style="color:var(--text3);font-size:13px">No rankable data.</div>':''}
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Pass vs Fail Distribution</div>
+        <div class="chart-sub">Overall result breakdown</div>
+        <div class="chart-shell"><canvas id="dashPieChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Subject-wise Average Marks</div>
+        <div class="chart-sub">Mean total marks per subject</div>
+        <div class="chart-shell"><canvas id="dashBarChart"></canvas></div>
+      </div>
+    </div>
+  `;
+
+  // Pie chart
+  destroyChart('dashPie');
+  state.charts.dashPie = new Chart(document.getElementById('dashPieChart').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:['Pass','Fail','Unknown'],datasets:[{data:[passCount,failCount,rows.length-passCount-failCount].map(n=>Math.max(n,0)),backgroundColor:['rgba(16,185,129,.8)','rgba(239,68,68,.8)','rgba(91,107,130,.5)'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b97a8',font:{size:12}}}},cutout:'65%'}
+  });
+
+  // Bar chart
+  const courseNames=D.allCourses.slice(0,12);
+  const courseAvgs=courseNames.map(c=>D.courseStats[c]?D.courseStats[c].avgTotal:0);
+  destroyChart('dashBar');
+  state.charts.dashBar = new Chart(document.getElementById('dashBarChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:courseNames,datasets:[{label:'Avg Marks',data:courseAvgs.map(v=>+v.toFixed(1)),backgroundColor:courseNames.map((_,i)=>`hsl(${170+i*20},70%,50%)`),borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b97a8',maxRotation:45}},y:{ticks:{color:'#8b97a8'},beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'}}}}
+  });
+}
+
+function destroyChart(key){
+  if(state.charts[key]){ state.charts[key].destroy(); delete state.charts[key]; }
+}
+
+// ══════════════════════════════════════════════
+// STUDENTS PAGE
+// ══════════════════════════════════════════════
+function renderStudents(){
+  if(!state.allRows.length) return;
+  const D=buildDataSummary();
+  const K=state.keys;
+
+  // Build ranked student table
+  const ranked=[...D.studentStats].filter(s=>s.gpa!==null).sort((a,b)=>b.gpa-a.gpa);
+  const unranked=D.studentStats.filter(s=>s.gpa===null);
+  const all=[...ranked,...unranked];
+
+  // Weak students: more than half their subjects failed
+  const weak=D.studentStats.filter(s=>s.fails>0&&(s.fails/(s.total||1))>=0.4);
+  
+  const tableRows = all.map((s,i)=>{
+    const rankBadge = i<3 ? `<span class="rank-badge rank-${i+1}">#${i+1}</span>` : `<span style="color:var(--text3);font-size:12px">#${i+1}</span>`;
+    const passBadge = s.fails===0&&s.passes>0 ? `<span class="pass-badge pass">All Pass</span>` : s.passes===0&&s.fails>0 ? `<span class="pass-badge fail">All Fail</span>` : `<span class="pass-badge wb">${s.passes}P/${s.fails}F</span>`;
+    return `<tr>
+      <td>${rankBadge}</td>
+      <td style="font-weight:500;color:var(--text)">${s.id}</td>
+      <td style="color:var(--text2)">${s.name!==s.id?s.name:'—'}</td>
+      <td style="font-weight:700;color:var(--accent)">${s.gpa!==null?fmtNum(s.gpa):'—'}</td>
+      <td>${passBadge}</td>
+      <td style="color:var(--text3)">${s.total}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="viewStudentProfile('${s.id}')">View →</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('studentsContent').innerHTML = `
+    <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
+      <div class="kpi-card accent"><div class="kpi-label">Total Students</div><div class="kpi-value">${all.length}</div><div class="kpi-icon">👥</div></div>
+      <div class="kpi-card danger"><div class="kpi-label">At-Risk</div><div class="kpi-value">${weak.length}</div><div class="kpi-sub">≥40% fail rate</div><div class="kpi-icon">⚠️</div></div>
+      <div class="kpi-card green"><div class="kpi-label">Top Scorer</div><div class="kpi-value" style="font-size:16px">${ranked[0]?fmtNum(ranked[0].gpa):'—'}</div><div class="kpi-sub">${ranked[0]?ranked[0].id:''}</div><div class="kpi-icon">🏆</div></div>
+    </div>
+
+    ${weak.length>0?`<div class="card" style="margin-bottom:16px;border-color:rgba(239,68,68,.2)">
+      <div class="section-title" style="color:var(--danger);margin-bottom:8px">⚠️ At-Risk Students (${weak.length})</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${weak.map(s=>`<span class="chip" style="background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.2);color:var(--danger);cursor:pointer" onclick="viewStudentProfile('${s.id}')">${s.id} (${s.fails} fail${s.fails>1?'s':''})</span>`).join('')}
+      </div>
+    </div>`:''}
+
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">All Students</div>
+        <div class="section-count">${all.length}</div>
+        <div class="section-actions">
+          <button class="btn btn-success btn-sm" onclick="exportStudentCSV()">📥 Export CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Rank</th><th>ID</th><th>Name</th><th>Avg Score</th><th>Status</th><th>Subjects</th><th>Action</th></tr></thead>
+          <tbody>${tableRows||'<tr><td colspan="7" style="text-align:center;color:var(--text3)">No students found</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function viewStudentProfile(id){
+  // Navigate to search and auto-search
+  navTo('search',document.querySelector('[data-page=search]'));
+  document.getElementById('searchInput').value=id;
+  doSearch();
+}
+
+// ══════════════════════════════════════════════
+// SUBJECTS PAGE
+// ══════════════════════════════════════════════
+function renderSubjects(){
+  if(!state.allRows.length) return;
+  const D=buildDataSummary();
+  const K=state.keys;
+
+  const subjectRows=Object.entries(D.courseStats).map(([name,s])=>{
+    const failPct=pct(s.fails,s.count);
+    const passPct2=pct(s.passes,s.count);
+    const bar=`<div style="display:flex;gap:4px;align-items:center">
+      <div style="flex:1;height:6px;background:var(--surface3);border-radius:99px;overflow:hidden">
+        <div style="width:${passPct2}%;height:100%;background:var(--accent3);border-radius:99px"></div>
+      </div>
+      <span style="font-size:11px;color:var(--accent3);width:32px;text-align:right">${passPct2}%</span>
+    </div>`;
+    const difficulty = failPct>40?`<span class="pass-badge fail">Hard</span>`:failPct>20?`<span class="pass-badge wb">Medium</span>`:`<span class="pass-badge pass">Easy</span>`;
+    return `<tr>
+      <td style="font-weight:600;color:var(--text)">${name}</td>
+      <td style="color:var(--text3)">${s.count}</td>
+      <td style="color:var(--accent)">${s.avgTotal>0?s.avgTotal.toFixed(1):'—'}</td>
+      <td style="color:var(--accent2)">${s.avgCA>0?s.avgCA.toFixed(1):'—'}</td>
+      <td style="color:var(--accent3)">${s.avgTE>0?s.avgTE.toFixed(1):'—'}</td>
+      <td style="min-width:140px">${bar}</td>
+      <td style="color:var(--danger)">${s.fails}</td>
+      <td>${difficulty}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('subjectsContent').innerHTML = `
+    <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
+      <div class="kpi-card accent"><div class="kpi-label">Total Subjects</div><div class="kpi-value">${D.allCourses.length}</div><div class="kpi-icon">📚</div></div>
+      <div class="kpi-card danger"><div class="kpi-label">Hardest Subject</div><div class="kpi-value" style="font-size:13px">${Object.entries(D.courseStats).sort((a,b)=>b[1].fails-a[1].fails)[0]?.[0]||'—'}</div><div class="kpi-sub">most failures</div><div class="kpi-icon">💀</div></div>
+      <div class="kpi-card green"><div class="kpi-label">Easiest Subject</div><div class="kpi-value" style="font-size:13px">${Object.entries(D.courseStats).sort((a,b)=>a[1].fails-b[1].fails)[0]?.[0]||'—'}</div><div class="kpi-sub">fewest failures</div><div class="kpi-icon">🌟</div></div>
+    </div>
+    <div class="card">
+      <div class="section-header"><div class="section-title">Subject Analytics</div><div class="section-count">${D.allCourses.length}</div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Subject</th><th>Records</th><th>Avg Total</th><th>Avg CA</th><th>Avg TE</th><th>Pass Rate</th><th>Fails</th><th>Difficulty</th></tr></thead>
+          <tbody>${subjectRows||'<tr><td colspan="8" style="text-align:center;color:var(--text3)">No subject data</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════
+// CHARTS PAGE
+// ══════════════════════════════════════════════
+function renderCharts(){
+  if(!state.allRows.length) return;
+  const D=buildDataSummary();
+
+  document.getElementById('chartsContent').innerHTML = `
+    <div style="margin-bottom:14px">
+      <div class="tabs" id="chartTabs">
+        <div class="tab active" onclick="switchChartTab('overview',this)">Overview</div>
+        <div class="tab" onclick="switchChartTab('performance',this)">Performance</div>
+        <div class="tab" onclick="switchChartTab('distribution',this)">Distribution</div>
+        <div class="tab" onclick="switchChartTab('comparison',this)">Comparison</div>
+      </div>
+    </div>
+    <div id="chartTabContent"></div>
+  `;
+  switchChartTab('overview',document.querySelector('#chartTabs .tab.active'),D);
+}
+
+function switchChartTab(tab, el, D){
+  document.querySelectorAll('#chartTabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  if(!D) D=buildDataSummary();
+  const K=state.keys;
+
+  if(tab==='overview'){
+    document.getElementById('chartTabContent').innerHTML = `
+      <div class="charts-grid">
+        <div class="chart-card"><div class="chart-title">Pass/Fail Donut</div><div class="chart-sub">Result distribution</div><div class="chart-shell"><canvas id="c1"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Subject Average Marks</div><div class="chart-sub">Bar chart by subject</div><div class="chart-shell"><canvas id="c2"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Marks Distribution</div><div class="chart-sub">How marks are spread</div><div class="chart-shell"><canvas id="c3"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">CA vs TE Comparison</div><div class="chart-sub">Internal vs external average</div><div class="chart-shell"><canvas id="c4"></canvas></div></div>
+      </div>`;
+    setTimeout(()=>{
+      // Donut
+      new Chart(document.getElementById('c1').getContext('2d'),{type:'doughnut',data:{labels:['Pass','Fail','Other'],datasets:[{data:[D.passRows.length,D.failRows.length,Math.max(0,D.rows.length-D.passRows.length-D.failRows.length)],backgroundColor:['rgba(16,185,129,.8)','rgba(239,68,68,.8)','rgba(91,107,130,.4)'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{labels:{color:'#8b97a8'}}}}});
+      // Bar
+      const cn=D.allCourses.slice(0,10); const ca=cn.map(c=>+(D.courseStats[c]?.avgTotal||0).toFixed(1));
+      new Chart(document.getElementById('c2').getContext('2d'),{type:'bar',data:{labels:cn,datasets:[{label:'Avg',data:ca,backgroundColor:cn.map((_,i)=>`hsl(${180+i*18},65%,50%)`),borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b97a8',maxRotation:50}},y:{ticks:{color:'#8b97a8'},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}}}});
+      // Histogram
+      const totals=D.allTotals; const buckets=Array(10).fill(0); totals.forEach(t=>{ const b=Math.min(9,Math.floor(t/10)); buckets[b]++; });
+      new Chart(document.getElementById('c3').getContext('2d'),{type:'bar',data:{labels:['0-9','10-19','20-29','30-39','40-49','50-59','60-69','70-79','80-89','90+'],datasets:[{label:'Students',data:buckets,backgroundColor:buckets.map((_,i)=>i<4?'rgba(239,68,68,.6)':i<7?'rgba(245,158,11,.6)':'rgba(16,185,129,.6)'),borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b97a8'}},y:{ticks:{color:'#8b97a8'},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}}}});
+      // CA vs TE
+      const cn2=D.allCourses.slice(0,10);
+      new Chart(document.getElementById('c4').getContext('2d'),{type:'bar',data:{labels:cn2,datasets:[{label:'CA',data:cn2.map(c=>+(D.courseStats[c]?.avgCA||0).toFixed(1)),backgroundColor:'rgba(0,212,255,.6)',borderRadius:[5,5,0,0]},{label:'TE',data:cn2.map(c=>+(D.courseStats[c]?.avgTE||0).toFixed(1)),backgroundColor:'rgba(124,58,237,.6)',borderRadius:[5,5,0,0]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b97a8'}}},scales:{x:{ticks:{color:'#8b97a8',maxRotation:50}},y:{ticks:{color:'#8b97a8'},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}}}});
+    },50);
+  } else if(tab==='performance'){
+    const top10=[...D.studentStats].filter(s=>s.gpa!==null).sort((a,b)=>b.gpa-a.gpa).slice(0,10);
+    document.getElementById('chartTabContent').innerHTML = `
+      <div class="charts-grid">
+        <div class="chart-card" style="grid-column:1/-1"><div class="chart-title">Top 10 Students by Score</div><div class="chart-sub">Ranked performance</div><div class="chart-shell" style="height:320px"><canvas id="c5"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Subject Failure Count</div><div class="chart-sub">Failures per subject</div><div class="chart-shell"><canvas id="c6"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Grade Point Radar</div><div class="chart-sub">Subject GP comparison</div><div class="chart-shell"><canvas id="c7"></canvas></div></div>
+      </div>`;
+    setTimeout(()=>{
+      new Chart(document.getElementById('c5').getContext('2d'),{type:'bar',data:{labels:top10.map(s=>s.id),datasets:[{label:'Avg Score',data:top10.map(s=>+fmtNum(s.gpa)),backgroundColor:top10.map((_,i)=>i===0?'rgba(251,191,36,.8)':i===1?'rgba(156,163,175,.8)':i===2?'rgba(180,83,9,.8)':'rgba(0,212,255,.5)'),borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b97a8'},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true},y:{ticks:{color:'#8b97a8'}}}}});
+      const cn=D.allCourses.slice(0,10);
+      new Chart(document.getElementById('c6').getContext('2d'),{type:'bar',data:{labels:cn,datasets:[{label:'Fails',data:cn.map(c=>D.courseStats[c]?.fails||0),backgroundColor:'rgba(239,68,68,.65)',borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b97a8',maxRotation:50}},y:{ticks:{color:'#8b97a8'},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}}}});
+      const rn=D.allCourses.slice(0,7);
+      const rd=rn.map(c=>+(D.courseStats[c]?.avgTotal||0).toFixed(1));
+      new Chart(document.getElementById('c7').getContext('2d'),{type:'radar',data:{labels:rn,datasets:[{label:'Avg',data:rd,fill:true,backgroundColor:'rgba(0,212,255,.1)',borderColor:'rgba(0,212,255,.7)',pointBackgroundColor:'rgba(0,212,255,.9)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b97a8'}}},scales:{r:{ticks:{color:'#5a6478',backdropColor:'transparent'},grid:{color:'rgba(255,255,255,.06)'},pointLabels:{color:'#8b97a8'}}}}});
+    },50);
+  } else if(tab==='distribution'){
+    // Grade distribution
+    const K=state.keys;
+    const gradeMap={'O':0,'A+':0,'A':0,'B+':0,'B':0,'C':0,'F':0,'Other':0};
+    if(K.grade) state.allRows.forEach(r=>{ const g=String(r[K.grade]||'').trim().toUpperCase(); if(gradeMap[g]!==undefined) gradeMap[g]++; else gradeMap['Other']++; });
+    const deptMap={};
+    if(K.dept) state.allRows.forEach(r=>{ const d=String(r[K.dept]||'Unknown').trim(); deptMap[d]=(deptMap[d]||0)+1; });
+
+    document.getElementById('chartTabContent').innerHTML = `
+      <div class="charts-grid">
+        <div class="chart-card"><div class="chart-title">Grade Distribution</div><div class="chart-sub">Letter grades breakdown</div><div class="chart-shell"><canvas id="c8"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Pass/Fail Per Subject</div><div class="chart-sub">Stacked comparison</div><div class="chart-shell"><canvas id="c9"></canvas></div></div>
+        <div class="chart-card" style="${K.dept?'':'opacity:.4;pointer-events:none'}"><div class="chart-title">Department Distribution</div><div class="chart-sub">${K.dept?'Records per dept':'No dept column found'}</div><div class="chart-shell"><canvas id="c10"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Score Area Chart</div><div class="chart-sub">Marks trend across records</div><div class="chart-shell"><canvas id="c11"></canvas></div></div>
+      </div>`;
+    setTimeout(()=>{
+      const gl=Object.keys(gradeMap).filter(g=>gradeMap[g]>0);
+      new Chart(document.getElementById('c8').getContext('2d'),{type:'pie',data:{labels:gl,datasets:[{data:gl.map(g=>gradeMap[g]),backgroundColor:['rgba(16,185,129,.8)','rgba(0,212,255,.8)','rgba(59,130,246,.8)','rgba(124,58,237,.8)','rgba(168,85,247,.8)','rgba(245,158,11,.8)','rgba(239,68,68,.8)','rgba(91,107,130,.6)'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b97a8'}}}}});
+      const cn=D.allCourses.slice(0,8);
+      new Chart(document.getElementById('c9').getContext('2d'),{type:'bar',data:{labels:cn,datasets:[{label:'Pass',data:cn.map(c=>D.courseStats[c]?.passes||0),backgroundColor:'rgba(16,185,129,.7)',borderRadius:[5,5,0,0]},{label:'Fail',data:cn.map(c=>D.courseStats[c]?.fails||0),backgroundColor:'rgba(239,68,68,.7)',borderRadius:[5,5,0,0]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b97a8'}}},scales:{x:{ticks:{color:'#8b97a8',maxRotation:50},stacked:true},y:{ticks:{color:'#8b97a8'},grid:{color:'rgba(255,255,255,.04)'},stacked:true}}}});
+      if(K.dept){ const dl=Object.keys(deptMap);
+        new Chart(document.getElementById('c10').getContext('2d'),{type:'doughnut',data:{labels:dl,datasets:[{data:dl.map(d=>deptMap[d]),backgroundColor:dl.map((_,i)=>`hsl(${i*55},65%,55%)`),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{labels:{color:'#8b97a8',boxWidth:12}}}}});
+      }
+      const areaData=D.allTotals.slice(0,50);
+      new Chart(document.getElementById('c11').getContext('2d'),{type:'line',data:{labels:areaData.map((_,i)=>i+1),datasets:[{label:'Total Marks',data:areaData,fill:true,backgroundColor:'rgba(0,212,255,.08)',borderColor:'rgba(0,212,255,.7)',tension:.4,pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b97a8'}},y:{ticks:{color:'#8b97a8'},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}}}});
+    },50);
+  } else if(tab==='comparison'){
+    // Student comparison — top 5 radar
+    const top5=[...D.studentStats].filter(s=>s.gpa!==null).sort((a,b)=>b.gpa-a.gpa).slice(0,5);
+    const K=state.keys;
+    const cn=D.allCourses.slice(0,6);
+
+    document.getElementById('chartTabContent').innerHTML = `
+      <div class="charts-grid">
+        <div class="chart-card" style="grid-column:1/-1"><div class="chart-title">Top 5 Students — Subject Radar</div><div class="chart-sub">Multi-student performance comparison</div><div class="chart-shell" style="height:400px"><canvas id="c12"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">CA vs TE Scatter</div><div class="chart-sub">Internal vs external correlation</div><div class="chart-shell"><canvas id="c13"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Semester Trend</div><div class="chart-sub">Average marks per semester</div><div class="chart-shell"><canvas id="c14"></canvas></div></div>
+      </div>`;
+    setTimeout(()=>{
+      const colors=['rgba(0,212,255,.8)','rgba(124,58,237,.8)','rgba(16,185,129,.8)','rgba(245,158,11,.8)','rgba(239,68,68,.8)'];
+      const radarDatasets=top5.map((s,i)=>({
+        label:s.id,
+        data:cn.map(c=>{const r=s.sRows.find(row=>String(row[K.course]||'').trim()===c); return r&&K.total?num(r[K.total])||0:0;}),
+        borderColor:colors[i],backgroundColor:colors[i].replace('.8)','.08)'),fill:true,pointRadius:3
+      }));
+      new Chart(document.getElementById('c12').getContext('2d'),{type:'radar',data:{labels:cn,datasets:radarDatasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b97a8',boxWidth:12}}},scales:{r:{ticks:{color:'#5a6478',backdropColor:'transparent'},grid:{color:'rgba(255,255,255,.06)'},pointLabels:{color:'#8b97a8'}}}}});
+      // Scatter
+      const scatterData=state.allRows.filter(r=>K.ca&&K.te&&num(r[K.ca])!==null&&num(r[K.te])!==null).slice(0,200).map(r=>({x:num(r[K.ca]),y:num(r[K.te])}));
+      new Chart(document.getElementById('c13').getContext('2d'),{type:'scatter',data:{datasets:[{label:'CA vs TE',data:scatterData,backgroundColor:'rgba(0,212,255,.4)',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'CA',color:'#8b97a8'},ticks:{color:'#8b97a8'},grid:{color:'rgba(255,255,255,.04)'}},y:{title:{display:true,text:'TE',color:'#8b97a8'},ticks:{color:'#8b97a8'},grid:{color:'rgba(255,255,255,.04)'}}}}});
+      // Semester trend
+      const semMap={};
+      if(K.sem) state.allRows.forEach(r=>{ const s=String(r[K.sem]||'').trim(); const t=num(r[K.total]); if(s&&t!==null){if(!semMap[s])semMap[s]=[];semMap[s].push(t);} });
+      const sl=Object.keys(semMap).sort(); const sa=sl.map(s=>avg(semMap[s]).toFixed(1));
+      if(sl.length){
+        new Chart(document.getElementById('c14').getContext('2d'),{type:'line',data:{labels:sl,datasets:[{label:'Avg Marks',data:sa,borderColor:'rgba(16,185,129,.8)',backgroundColor:'rgba(16,185,129,.08)',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'rgba(16,185,129,.9)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b97a8'}},y:{ticks:{color:'#8b97a8'},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:false}}}});
+      } else {
+        document.getElementById('c14').closest('.chart-card').innerHTML='<div class="chart-title">Semester Trend</div><div class="empty-state" style="padding:30px"><div class="empty-icon">📅</div><h3>No Semester Column</h3><p>Add a "Semester" column to your data.</p></div>';
+      }
+    },50);
+  }
+}
+
+// ══════════════════════════════════════════════
+// STUDENT SEARCH
+// ══════════════════════════════════════════════
+function doSearch(){
+  const q=document.getElementById('searchInput').value.trim();
+  if(!q){ toast('Enter a Roll/Reg number','error'); return; }
+  if(!state.allRows.length){ toast('Please upload data first','error'); navTo('upload',document.querySelector('[data-page=upload]')); return; }
+  
+  const rows=getStudentRows(q);
+  if(!rows.length){ document.getElementById('searchResults').innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div><h3>Not Found</h3><p>No student with ID "${q}". Check for leading zeros or spaces.</p></div>`; return; }
+  
+  const K=state.keys;
+  const name=getStudentName(rows[0]);
+  const id=getStudentId(rows[0]);
+  const gpa=computeStudentGPA(rows);
+  const passes=rows.filter(r=>isPass(r)===true).length;
+  const fails=rows.filter(r=>isFail(r)===true).length;
+  const totals=rows.map(r=>num(r[K.total])).filter(n=>n!==null);
+  const highest=totals.length?Math.max(...totals):null;
+  const lowest=totals.length?Math.min(...totals):null;
+
+  // Build table
+  const cols=Object.keys(rows[0]);
+  const tableH=cols.map(c=>`<th>${c}</th>`).join('');
+  const tableB=rows.map(r=>`<tr>${cols.map(c=>`<td>${r[c]}</td>`).join('')}</tr>`).join('');
+
+  document.getElementById('searchResults').innerHTML = `
+    <div class="profile-header">
+      <div class="profile-avatar">${(name||id).charAt(0).toUpperCase()}</div>
+      <div>
+        <div class="profile-name">${name||id}</div>
+        <div class="profile-meta">ID: ${id}${K.dept&&rows[0][K.dept]?' · Dept: '+rows[0][K.dept]:''}${K.sem&&rows[0][K.sem]?' · Sem: '+rows[0][K.sem]:''}</div>
+        <div class="profile-stats">
+          <div class="profile-stat"><div class="profile-stat-val">${gpa!==null?fmtNum(gpa):'—'}</div><div class="profile-stat-label">Avg Score</div></div>
+          <div class="profile-stat"><div class="profile-stat-val" style="color:var(--accent3)">${passes}</div><div class="profile-stat-label">Passed</div></div>
+          <div class="profile-stat"><div class="profile-stat-val" style="color:var(--danger)">${fails}</div><div class="profile-stat-label">Failed</div></div>
+          <div class="profile-stat"><div class="profile-stat-val">${rows.length}</div><div class="profile-stat-label">Subjects</div></div>
+          ${highest!==null?`<div class="profile-stat"><div class="profile-stat-val" style="color:var(--gold)">${highest}</div><div class="profile-stat-label">Highest</div></div>`:''}
+          ${lowest!==null?`<div class="profile-stat"><div class="profile-stat-val" style="color:var(--text2)">${lowest}</div><div class="profile-stat-label">Lowest</div></div>`:''}
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-header">
+        <div class="section-title">Subject Details</div>
+        <div class="section-actions">
+          <button class="btn btn-ai btn-sm" onclick="aiAsk('Analyze the performance of student ${id}')">🤖 AI Analysis</button>
+          <button class="btn btn-success btn-sm" onclick="exportStudentPDF('${id}')">📄 PDF Report</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table><thead><tr>${tableH}</tr></thead><tbody>${tableB}</tbody></table></div>
+    </div>
+    ${K.total&&K.course?`<div class="chart-card"><div class="chart-title">Performance by Subject</div><div class="chart-sub">${id}</div><div class="chart-shell"><canvas id="studentChart"></canvas></div></div>`:''}
+  `;
+
+  // Student chart
+  if(K.total&&K.course){
+    setTimeout(()=>{
+      const labels=rows.map(r=>String(r[K.course]||'').trim());
+      const vals=rows.map(r=>num(r[K.total])||0);
+      new Chart(document.getElementById('studentChart').getContext('2d'),{
+        type:'bar',
+        data:{labels,datasets:[{label:'Total Marks',data:vals,backgroundColor:vals.map(v=>v>=40?'rgba(16,185,129,.65)':'rgba(239,68,68,.65)'),borderRadius:6}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b97a8'}},y:{ticks:{color:'#8b97a8'},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}}}
+      });
+    },50);
+  }
+  document.getElementById('searchHint').textContent = `Found ${rows.length} record(s) for ID: ${id}`;
+}
+
+function clearSearch(){
+  document.getElementById('searchInput').value='';
+  document.getElementById('searchResults').innerHTML='';
+  document.getElementById('searchHint').textContent='';
+}
+
+// ══════════════════════════════════════════════
+// REPORTS PAGE
+// ══════════════════════════════════════════════
+function renderReports(){
+  if(!state.allRows.length) return;
+  const D=buildDataSummary();
+  document.getElementById('reportsContent').innerHTML = `
+    <div class="grid-2">
+      <div class="card">
+        <div style="font-size:32px;margin-bottom:12px">📊</div>
+        <div class="section-title" style="margin-bottom:8px">Full Analytics Report</div>
+        <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Complete PDF report with KPIs, rankings, subject analysis, and insights.</p>
+        <button class="btn btn-primary" onclick="exportFullPDF()">📄 Download PDF</button>
+      </div>
+      <div class="card">
+        <div style="font-size:32px;margin-bottom:12px">📥</div>
+        <div class="section-title" style="margin-bottom:8px">Student Rankings CSV</div>
+        <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Export ranked student list with scores, pass/fail status.</p>
+        <button class="btn btn-success" onclick="exportStudentCSV()">📥 Download CSV</button>
+      </div>
+      <div class="card">
+        <div style="font-size:32px;margin-bottom:12px">🤖</div>
+        <div class="section-title" style="margin-bottom:8px">AI-Generated Summary</div>
+        <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Let Claude AI write a detailed narrative report of your data.</p>
+        <button class="btn btn-ai" onclick="generateAIReport()">🤖 Generate Report</button>
+      </div>
+      <div class="card">
+        <div style="font-size:32px;margin-bottom:12px">📋</div>
+        <div class="section-title" style="margin-bottom:8px">Subject Analytics CSV</div>
+        <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Export subject-wise averages, pass rates, difficulty ratings.</p>
+        <button class="btn btn-secondary" onclick="exportSubjectCSV()">📥 Export Subjects</button>
+      </div>
+    </div>
+    <div id="aiReportOutput" style="margin-top:16px"></div>
+  `;
+}
+
+// ══════════════════════════════════════════════
+// FULL TABLE
+// ══════════════════════════════════════════════
+function renderTable(){
+  if(!state.allRows.length) return;
+  const rows=state.allRows;
+  const cols=Object.keys(rows[0]);
+  const tableH=cols.map(c=>`<th>${c}</th>`).join('');
+  const tableB=rows.slice(0,500).map(r=>`<tr>${cols.map(c=>`<td>${r[c]}</td>`).join('')}</tr>`).join('');
+  document.getElementById('tableContent').innerHTML = `
+    <div class="export-bar">
+      <span>📄 Showing first ${Math.min(500,rows.length)} of ${rows.length} rows</span>
+      <button class="btn btn-success btn-sm" onclick="exportFullCSV()">📥 Export Full CSV</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr>${tableH}</tr></thead><tbody>${tableB}</tbody></table></div>
+  `;
+}
+
+// ══════════════════════════════════════════════
+// EXPORTS
+// ══════════════════════════════════════════════
+function exportStudentCSV(){
+  const D=buildDataSummary();
+  const headers='Rank,ID,Name,AvgScore,Passes,Fails,Subjects\n';
+  const ranked=[...D.studentStats].filter(s=>s.gpa!==null).sort((a,b)=>b.gpa-a.gpa);
+  const body=ranked.map((s,i)=>`${i+1},"${s.id}","${s.name}",${fmtNum(s.gpa)},${s.passes},${s.fails},${s.total}`).join('\n');
+  downloadFile(headers+body,'student_rankings.csv','text/csv');
+  toast('Student CSV exported','success');
+}
+
+function exportSubjectCSV(){
+  const D=buildDataSummary();
+  const headers='Subject,Records,AvgTotal,AvgCA,AvgTE,Passes,Fails,PassPct\n';
+  const body=Object.entries(D.courseStats).map(([n,s])=>`"${n}",${s.count},${s.avgTotal.toFixed(1)},${s.avgCA.toFixed(1)},${s.avgTE.toFixed(1)},${s.passes},${s.fails},${pct(s.passes,s.count)}%`).join('\n');
+  downloadFile(headers+body,'subject_analytics.csv','text/csv');
+  toast('Subject CSV exported','success');
+}
+
+function exportFullCSV(){
+  if(!state.allRows.length) return;
+  const cols=Object.keys(state.allRows[0]);
+  const header=cols.join(',')+'\n';
+  const body=state.allRows.map(r=>cols.map(c=>`"${String(r[c]).replace(/"/g,'""')}"`).join(',')).join('\n');
+  downloadFile(header+body,'full_data.csv','text/csv');
+  toast('Full CSV exported','success');
+}
+
+function downloadFile(content, name, type){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=name; a.click(); a.remove();
+}
+
+function exportFullPDF(){
+  if(!state.allRows.length){ toast('No data loaded','error'); return; }
+  const D=buildDataSummary();
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=doc.internal.pageSize.getWidth();
+  let y=18;
+
+  // Header
+  doc.setFillColor(7,9,15);
+  doc.rect(0,0,W,30,'F');
+  doc.setFontSize(18);doc.setTextColor(0,212,255);
+  doc.setFont('helvetica','bold');
+  doc.text('Excel Analytics Pro',14,13);
+  doc.setFontSize(9);doc.setTextColor(139,151,168);
+  doc.text('Full Analytics Report — '+new Date().toLocaleDateString(),14,21);
+  doc.text(state.filename,W-14,21,{align:'right'});
+  y=40;
+
+  // KPIs
+  doc.setFontSize(12);doc.setTextColor(30,40,55);doc.setFont('helvetica','bold');
+  doc.text('Key Performance Indicators',14,y);y+=7;
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  const kpis=[
+    ['Total Students',D.allStudents.length],
+    ['Total Records',D.rows.length],
+    ['Pass Count',D.passRows.length],
+    ['Fail Count',D.failRows.length],
+    ['Pass Rate',pct(D.passRows.length,D.passRows.length+D.failRows.length)+'%'],
+    ['Avg Total Marks',avg(D.allTotals).toFixed(1)],
+    ['Highest Mark',Math.max(...D.allTotals,0)],
+    ['Total Subjects',D.allCourses.length],
+  ];
+  kpis.forEach(([l,v])=>{
+    doc.setTextColor(100,120,140);doc.text(l+':',14,y);
+    doc.setTextColor(30,40,55);doc.setFont('helvetica','bold');doc.text(String(v),80,y);
+    doc.setFont('helvetica','normal');y+=6;
+  });
+  y+=5;
+
+  // Student Rankings
+  doc.setFontSize(12);doc.setTextColor(30,40,55);doc.setFont('helvetica','bold');
+  doc.text('Student Rankings (Top 20)',14,y);y+=7;
+  const ranked=[...D.studentStats].filter(s=>s.gpa!==null).sort((a,b)=>b.gpa-a.gpa).slice(0,20);
+  doc.setFontSize(8);
+  [['#','ID','Name','Avg Score','Pass','Fail']].concat(ranked.map((s,i)=>[i+1,s.id,s.name!==s.id?s.name:'—',fmtNum(s.gpa),s.passes,s.fails])).forEach((row,ri)=>{
+    if(y>270){doc.addPage();y=18;}
+    const bg=ri===0?[40,50,70]:ri%2===0?[248,250,252]:[255,255,255];
+    doc.setFillColor(...bg);doc.rect(12,y-4,W-24,6,'F');
+    doc.setTextColor(ri===0?200:30,ri===0?210:40,ri===0?240:55);
+    doc.setFont('helvetica',ri===0?'bold':'normal');
+    const cw=[10,30,50,30,15,15];const cx=[14,24,54,104,134,149];
+    row.forEach((v,j)=>{doc.text(String(v).substring(0,22),cx[j],y);});
+    y+=6;
+  });
+  y+=5;
+
+  // Subject Analytics
+  if(y>240){doc.addPage();y=18;}
+  doc.setFontSize(12);doc.setTextColor(30,40,55);doc.setFont('helvetica','bold');
+  doc.text('Subject Analytics',14,y);y+=7;
+  doc.setFontSize(8);
+  [['Subject','Records','Avg Total','Passes','Fails','Pass%']].concat(
+    Object.entries(D.courseStats).map(([n,s])=>[n.substring(0,20),s.count,s.avgTotal.toFixed(1),s.passes,s.fails,pct(s.passes,s.count)+'%'])
+  ).forEach((row,ri)=>{
+    if(y>270){doc.addPage();y=18;}
+    const bg=ri===0?[40,50,70]:ri%2===0?[248,250,252]:[255,255,255];
+    doc.setFillColor(...bg);doc.rect(12,y-4,W-24,6,'F');
+    doc.setTextColor(ri===0?200:30,ri===0?210:40,ri===0?240:55);
+    doc.setFont('helvetica',ri===0?'bold':'normal');
+    const cx=[14,60,80,105,120,140];
+    row.forEach((v,j)=>{doc.text(String(v),cx[j],y);});
+    y+=6;
+  });
+
+  doc.save('excel_analytics_pro_report.pdf');
+  toast('PDF report downloaded!','success');
+}
+
+function exportStudentPDF(id){
+  const rows=getStudentRows(id);
+  if(!rows.length){ toast('Student not found','error'); return; }
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();const W=doc.internal.pageSize.getWidth();let y=18;
+  doc.setFontSize(16);doc.setTextColor(0,150,200);doc.setFont('helvetica','bold');
+  doc.text('Student Report — '+id,14,y);y+=10;
+  doc.setFontSize(9);doc.setTextColor(100,120,140);doc.setFont('helvetica','normal');
+  const gpa=computeStudentGPA(rows);
+  doc.text('Avg Score: '+(gpa!==null?fmtNum(gpa):'—')+'  |  Subjects: '+rows.length+'  |  '+new Date().toLocaleDateString(),14,y);y+=10;
+  const cols=Object.keys(rows[0]);
+  doc.setFontSize(8);
+  [cols].concat(rows.map(r=>cols.map(c=>String(r[c]).substring(0,18)))).forEach((row,ri)=>{
+    if(y>270){doc.addPage();y=18;}
+    const bg=ri===0?[40,50,70]:ri%2===0?[248,250,252]:[255,255,255];
+    doc.setFillColor(...bg);doc.rect(12,y-4,W-24,6,'F');
+    doc.setTextColor(ri===0?200:30,ri===0?210:40,ri===0?240:55);
+    doc.setFont('helvetica',ri===0?'bold':'normal');
+    row.forEach((v,j)=>{if(j*25<W-20)doc.text(v,14+j*25,y);});
+    y+=6;
+  });
+  doc.save(`student_${id}_report.pdf`);
+  toast('Student PDF downloaded!','success');
+}
+
+// ══════════════════════════════════════════════
+// AI INTEGRATION
+// ══════════════════════════════════════════════
+function buildDataContext(){
+  if(!state.allRows.length) return 'No data loaded yet.';
+  const D=buildDataSummary();
+  const K=state.keys;
+  const top5=[...D.studentStats].filter(s=>s.gpa!==null).sort((a,b)=>b.gpa-a.gpa).slice(0,5);
+  const worst5=[...D.studentStats].filter(s=>s.gpa!==null).sort((a,b)=>a.gpa-b.gpa).slice(0,5);
+  const worstSubject=Object.entries(D.courseStats).sort((a,b)=>b[1].fails-a[1].fails)[0];
+  
+  return `=== STUDENT MARKS DATA SUMMARY ===
+File: ${state.filename}
+Total Records: ${D.rows.length}
+Total Students: ${D.allStudents.length}
+Total Subjects: ${D.allCourses.length}
+Detected columns: ${Object.entries(K).filter(([,v])=>v).map(([k,v])=>`${k}="${v}"`).join(', ')}
+
+OVERALL PERFORMANCE:
+- Pass Count: ${D.passRows.length} (${pct(D.passRows.length,D.passRows.length+D.failRows.length)}%)
+- Fail Count: ${D.failRows.length} (${pct(D.failRows.length,D.passRows.length+D.failRows.length)}%)
+- Average Total Marks: ${avg(D.allTotals).toFixed(2)}
+- Highest Mark: ${Math.max(...D.allTotals,0)}
+- Lowest Mark: ${Math.min(...D.allTotals.filter(n=>n>0),999)}
+
+TOP 5 STUDENTS: ${top5.map((s,i)=>`#${i+1}: ${s.id} (${s.name!==s.id?s.name:''}) avg=${fmtNum(s.gpa)}`).join(' | ')}
+
+WEAKEST 5 STUDENTS: ${worst5.map(s=>`${s.id} avg=${fmtNum(s.gpa)} fails=${s.fails}`).join(' | ')}
+
+SUBJECT ANALYTICS:
+${Object.entries(D.courseStats).map(([n,s])=>`  ${n}: avg=${s.avgTotal.toFixed(1)}, pass=${s.passes}, fail=${s.fails}, passRate=${pct(s.passes,s.count)}%`).join('\n')}
+
+HARDEST SUBJECT: ${worstSubject?worstSubject[0]+' ('+worstSubject[1].fails+' fails)':'N/A'}
+
+SAMPLE RECORDS (first 20):
+${JSON.stringify(state.allRows.slice(0,20),null,1)}
+=== END DATA ===`;
+}
+
+let aiConversationHistory=[];
+
+async function aiAsk(question){
+  if(!question) question=document.getElementById('aiInput').value.trim();
+  if(!question){ toast('Enter a question','error'); return; }
+  
+  navTo('ai',document.querySelector('[data-page=ai]'));
+  document.getElementById('aiInput').value='';
+  document.getElementById('aiEmptyState').style.display='none';
+  
+  // Add user message to conversation
+  addConversationMessage('user',question);
+  
+  const btn=document.getElementById('aiSendBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span> Thinking...';
+  
+  // Add thinking indicator
+  const thinkId='think_'+Date.now();
+  addConversationMessage('assistant','<span class="ai-thinking">🤖 Claude is analyzing your data...</span>',thinkId);
+
+  const dataCtx=buildDataContext();
+  aiConversationHistory.push({role:'user',content:question});
+  
+  try{
+    const messages=[
+      {role:'user',content:`You are an expert data analyst specializing in student academic performance. You have been given the following dataset to analyze:\n\n${dataCtx}\n\nAnswer questions concisely but insightfully. Use bullet points for lists. Reference specific numbers from the data. User question: ${question}`}
+    ];
+    // Include conversation history (simplified)
+    if(aiConversationHistory.length>2){
+      // Just use the system prompt + latest question for simplicity
+    }
+    
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:messages
+      })
+    });
+    
+    if(!resp.ok){ const err=await resp.json(); throw new Error(err.error?.message||'API error'); }
+    const data=await resp.json();
+    const text=data.content.map(b=>b.text||'').join('');
+    aiConversationHistory.push({role:'assistant',content:text});
+    updateConversationMessage(thinkId,text);
+    
+  } catch(err){
+    updateConversationMessage(thinkId,`❌ Error: ${err.message}`);
+    toast('AI request failed: '+err.message,'error');
+  }
+  
+  btn.disabled=false;
+  btn.innerHTML='Ask AI';
+}
+
+function addConversationMessage(role,content,id){
+  const conv=document.getElementById('aiConversation');
+  const el=document.createElement('div');
+  el.style.cssText=`display:flex;gap:10px;align-items:flex-start;${role==='user'?'flex-direction:row-reverse':''}`;
+  el.id=id||'';
+  const avatar=`<div style="width:32px;height:32px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;${role==='user'?'background:rgba(0,212,255,.15)':'background:linear-gradient(135deg,var(--accent2),#9333ea)'}">${role==='user'?'👤':'🤖'}</div>`;
+  const bubble=`<div style="background:${role==='user'?'var(--surface2)':'var(--surface)'};border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--text2);line-height:1.65;max-width:85%;${role==='user'?'text-align:right':''}" id="${id?id+'_bubble':''}">${formatAIText(content)}</div>`;
+  el.innerHTML=role==='user'?avatar+bubble:avatar+bubble;
+  conv.appendChild(el);
+  conv.lastChild.scrollIntoView({behavior:'smooth',block:'end'});
+}
+
+function updateConversationMessage(id,content){
+  const el=document.getElementById(id+'_bubble');
+  if(el) el.innerHTML=formatAIText(content);
+  const parent=document.getElementById(id);
+  if(parent) parent.scrollIntoView({behavior:'smooth',block:'end'});
+}
+
+function formatAIText(text){
+  return text
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^### (.+)$/gm,'<h4>$1</h4>')
+    .replace(/^## (.+)$/gm,'<h4>$1</h4>')
+    .replace(/^# (.+)$/gm,'<h4>$1</h4>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/gs,'<ul>$1</ul>')
+    .replace(/\n/g,'<br/>');
+}
+
+function clearAiHistory(){
+  aiConversationHistory=[];
+  document.getElementById('aiConversation').innerHTML='';
+  document.getElementById('aiEmptyState').style.display='';
+  document.getElementById('aiInput').value='';
+}
+
+function aiSend(){ aiAsk(document.getElementById('aiInput').value.trim()); }
+
+async function generateAIReport(){
+  const outDiv=document.getElementById('aiReportOutput');
+  outDiv.innerHTML=`<div class="ai-panel"><div style="text-align:center;padding:20px"><span class="spinner" style="width:24px;height:24px;border-width:3px"></span><p style="color:var(--text2);margin-top:10px">Claude is generating your report...</p></div></div>`;
+  
+  const dataCtx=buildDataContext();
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:`Generate a formal academic performance report based on this data:\n\n${dataCtx}\n\nWrite a structured report with sections: Executive Summary, Overall Performance, Top Performers, Areas of Concern, Subject Analysis, and Recommendations. Be specific with numbers. Use professional language.`}]
+      })
+    });
+    if(!resp.ok) throw new Error('API error');
+    const data=await resp.json();
+    const text=data.content.map(b=>b.text||'').join('');
+    outDiv.innerHTML=`<div class="ai-panel">
+      <div class="ai-panel-header">
+        <div class="ai-icon">📋</div>
+        <div><div class="ai-title">AI-Generated Report</div><div class="ai-sub">Generated ${new Date().toLocaleString()}</div></div>
+        <button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="downloadAIReport()">📥 Download</button>
+      </div>
+      <div class="ai-response visible" id="aiReportText">${formatAIText(text)}</div>
+    </div>`;
+    window._aiReportText=text;
+  } catch(err){
+    outDiv.innerHTML=`<div class="ai-panel"><p style="color:var(--danger)">❌ ${err.message}</p></div>`;
+  }
+}
+
+function downloadAIReport(){
+  if(!window._aiReportText) return;
+  downloadFile(window._aiReportText,'ai_report.txt','text/plain');
+  toast('Report downloaded','success');
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+navTo('overview', document.querySelector('[data-page=overview]'));
+</script>
+</body>
+</html>
