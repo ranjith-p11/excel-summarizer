@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Student Marks Analyzer — Search • Table • Charts</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f8fb;--card:#ffffff;--ink:#222;--muted:#6b7280;--brand:#1f6feb;--brand-600:#1b61d6;--line:#e5e7eb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:var(--brand);color:#fff;padding:18px 20px;font-weight:700;letter-spacing:.2px}
+  .container{max-width:1200px;margin:24px auto;padding:0 16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.04);padding:18px;margin-bottom:16px}
+  h2{margin:4px 0 10px;font-size:20px}
+  p{margin:8px 0;color:var(--muted)}
+  input[type="file"],input[type="text"],select,button{height:40px;border-radius:10px;border:1px solid var(--line);padding:0 12px;font:inherit}
+  input[type="text"]{width:280px}
+  button{background:var(--brand);color:#fff;border:none;font-weight:600;cursor:pointer}
+  button:hover{background:var(--brand-600)}
+  .btn-quiet{background:#f3f4f6;color:#111}
+  .btn-quiet:hover{background:#e5e7eb}
+  table{width:100%;border-collapse:collapse;border:1px solid var(--line)}
+  th,td{border-top:1px solid var(--line);padding:10px 8px;text-align:center}
+  th{background:#f9fafb;font-weight:700}
+  .hidden{display:none}
+  .stack{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .chart-shell{height:420px;max-width:900px;margin:12px auto 0}
+  .note{color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+  <header>📊 Student Marks Analyzer</header>
+  <div class="container">
+    <!-- Upload -->
+    <div class="card" id="uploadCard">
+      <h2>Upload Excel File</h2>
+      <div class="stack">
+        <input id="fileInput" type="file" accept=".xlsx,.xls" />
+      </div>
+      <p class="note">About: Upload your marks sheet. After upload you'll get a search bar and the full table. Search a Roll/Reg number to see that student's rows and build charts.</p>
+    </div>
+
+    <!-- Search (shown after upload) -->
+    <div class="card hidden" id="searchCard">
+      <h2>🔍 Search Student</h2>
+      <div class="stack">
+        <input id="searchInput" type="text" placeholder="Enter Roll No / Reg No" />
+        <button id="searchBtn">Search</button>
+        <button id="resetBtn" class="btn-quiet">Show All</button>
+      </div>
+      <p id="searchHint" class="note"></p>
+    </div>
+
+    <!-- Student details first -->
+    <div class="card hidden" id="studentCard">
+      <h2 id="studentTitle">Student Details</h2>
+      <div id="studentTableWrap"></div>
+
+      <div class="stack hidden" id="vizControls" style="margin-top:10px">
+        <label for="ySelect" class="note" style="min-width:180px">Y‑axis (for Bar / Line / Pie)</label>
+        <select id="ySelect">
+          <option value="">— Select —</option>
+          <option value="CA">CA</option>
+          <option value="TE">TE</option>
+          <option value="Total">Total</option>
+          <option value="Grade_point">Grade_point</option>
+        </select>
+        <button data-kind="bar" class="btn" id="barBtn">Bar</button>
+        <button data-kind="line" class="btn" id="lineBtn">Line</button>
+        <button data-kind="pie" class="btn" id="pieBtn">Pie</button>
+        <button data-kind="donut" class="btn" id="donutBtn">Donut</button>
+      </div>
+
+      <div id="chartCard" class="hidden">
+        <div class="chart-shell"><canvas id="chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Full table second -->
+    <div class="card hidden" id="fullCard">
+      <h2>📄 Full Data Table</h2>
+      <div id="fullTableWrap"></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  // ---------- Utilities ----------
+  const norm = v => String(v ?? "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  const byId = id => document.getElementById(id);
+  function buildTable(rows, containerId){
+    if(!rows || !rows.length){ byId(containerId).innerHTML = '<p class="note">No data.</p>'; return; }
+    const cols = Object.keys(rows[0]);
+    let html = '<table><thead><tr>' + cols.map(c=>`<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+    rows.forEach(r=>{ html += '<tr>' + cols.map(c=>`<td>${r[c]}</td>`).join('') + '</tr>'; });
+    html += '</tbody></table>';
+    byId(containerId).innerHTML = html;
+  }
+  function randomColor(){ return `hsl(${Math.floor(Math.random()*360)},70%,55%)`; }
+
+  // ---------- State ----------
+  let allRows = [];              // full sheet
+  let studentRows = [];          // filtered rows for a student
+  let chart;                     // Chart.js instance
+
+  // Detected column keys (actual names in the sheet)
+  const keys = { roll:null, reg:null, course:null, ca:null, te:null, total:null, gp:null, result:null };
+
+  function detectColumns(rows){
+    const headers = Object.keys(rows[0] || {});
+    const map = {}; headers.forEach(h=> map[norm(h)] = h);
+    const pick = aliases => aliases.find(a=> map[a]) ? map[aliases.find(a=> map[a])] : null;
+
+    keys.roll   = pick(['rollno','rollnumber','roll','rollnum']);
+    keys.reg    = pick(['regno','regnumber','registrationno','registrationnumber','reg']);
+    keys.course = pick(['coursecode','course_code','subjectcode','papercode','courseid']);
+    keys.ca     = pick(['ca','cia','internal','continuousassessment','sessional']);
+    keys.te     = pick(['te','external','endsem','ese','theoryexternal']);
+    keys.total  = pick(['total','grandtotal','overall','totalmarks','marks']);
+    keys.gp     = pick(['gradepoint','grade_point','gp']);
+    keys.result = pick(['result','status','passfail','remarks','grade']);
+
+    // Build a hint for the user
+    const hint = [];
+    hint.push(`Detected columns → ${
+      ['roll','reg','course','ca','te','total','gp','result']
+        .map(k=>`${k.toUpperCase()}: ${keys[k]??'— not found —'}`)
+        .join(' | ')
+    }`);
+    byId('searchHint').textContent = hint.join(' ');
+  }
+
+  // ---------- File load ----------
+  byId('fileInput').addEventListener('change', (e)=>{
+    const f = e.target.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = ev => {
+      const wb = XLSX.read(new Uint8Array(ev.target.result), {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      allRows = XLSX.utils.sheet_to_json(ws, {defval:""});
+      if(!allRows.length){ alert('Sheet is empty'); return; }
+      detectColumns(allRows);
+      // Show UI: search + full table
+      byId('searchCard').classList.remove('hidden');
+      byId('fullCard').classList.remove('hidden');
+      buildTable(allRows, 'fullTableWrap');
+    };
+    r.readAsArrayBuffer(f);
+  });
+
+  // ---------- Search ----------
+  function doSearch(){
+    const q = byId('searchInput').value; if(!q){ return; }
+    const qn = norm(q);
+    const idCols = [keys.roll, keys.reg].filter(Boolean);
+    if(idCols.length===0){ alert('Could not find Roll/Reg columns in your sheet.'); return; }
+    studentRows = allRows.filter(row => idCols.some(col => norm(row[col]) === qn));
+
+    if(studentRows.length===0){
+      alert('No student found. Tip: check if the number has leading zeros or extra spaces.');
+      byId('studentCard').classList.add('hidden');
+      byId('chartCard').classList.add('hidden');
+      return;
+    }
+
+    // Show student first, then full table (already visible)
+    const idLabel = keys.roll && studentRows[0][keys.roll] ? `${keys.roll}: ${studentRows[0][keys.roll]}` : `${keys.reg}: ${studentRows[0][keys.reg]}`;
+    byId('studentTitle').textContent = `Student Details — ${idLabel}`;
+    buildTable(studentRows, 'studentTableWrap');
+    byId('studentCard').classList.remove('hidden');
+
+    // Enable viz controls only if we have a course column
+    if(keys.course){ byId('vizControls').classList.remove('hidden'); }
+    else { byId('vizControls').classList.add('hidden'); }
+
+    // Clear previous chart
+    if(chart){ chart.destroy(); byId('chartCard').classList.add('hidden'); }
+  }
+  byId('searchBtn').addEventListener('click', doSearch);
+  byId('resetBtn').addEventListener('click', ()=>{
+    byId('searchInput').value='';
+    byId('studentCard').classList.add('hidden');
+    byId('chartCard').classList.add('hidden');
+    if(chart) chart.destroy();
+    // Full table stays visible
+  });
+
+  // ---------- Charts ----------
+  function makeDataset(labels, values, label){
+    const colors = labels.map(()=> randomColor());
+    return [{ label, data: values, backgroundColor: colors, borderColor: colors, borderWidth: 1 }];
+  }
+
+  function renderChart(config){
+    const ctx = byId('chart').getContext('2d');
+    if(chart) chart.destroy();
+    chart = new Chart(ctx, config);
+    byId('chartCard').classList.remove('hidden');
+  }
+
+  function showXY(kind){
+    if(!studentRows.length){ return; }
+    const sel = byId('ySelect').value;
+    const yMap = {
+      'CA': keys.ca,
+      'TE': keys.te,
+      'Total': keys.total,
+      'Grade_point': keys.gp
+    };
+    const yKey = yMap[sel];
+    if(!sel || !yKey){ alert(`Column for "${sel}" was not detected in your sheet.`); return; }
+    if(!keys.course){ alert('Course Code column not detected.'); return; }
+
+    const labels = studentRows.map(r => r[keys.course]);
+    const values = studentRows.map(r => Number(r[yKey]) || 0);
+
+    const type = (kind==='pie') ? 'pie' : (kind==='line' ? 'line' : 'bar');
+    const ds = makeDataset(labels, values, sel);
+
+    renderChart({
+      type,
+      data: { labels, datasets: ds },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display: type==='line' ? false : true } },
+        scales: (type==='pie') ? {} : {
+          x: { title:{ display:true, text: keys.course } },
+          y: { beginAtZero:true, title:{ display:true, text: sel } }
+        }
+      }
+    });
+  }
+
+  function showDonut(){
+    if(!studentRows.length){ return; }
+    if(!keys.result){ alert('Result column not detected.'); return; }
+    const pass = studentRows.filter(r => /^(p|pass)$/i.test(String(r[keys.result]).trim())).length;
+    const fail = studentRows.filter(r => /^(f|fail)$/i.test(String(r[keys.result]).trim())).length;
+    renderChart({
+      type:'doughnut',
+      data:{ labels:['Pass','Fail'], datasets:[{ data:[pass,fail], backgroundColor:['#22c55e','#ef4444'] }] },
+      options:{ responsive:true, maintainAspectRatio:false }
+    });
+  }
+
+  byId('barBtn').addEventListener('click', ()=>showXY('bar'));
+  byId('lineBtn').addEventListener('click', ()=>showXY('line'));
+  byId('pieBtn').addEventListener('click', ()=>showXY('pie'));
+  byId('donutBtn').addEventListener('click', showDonut);
+})();
+</script>
+</body>
+</html>
